@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: skyblue; overflow: hidden; }
+        .game-container { background-image: url('background1.png'); opacity: 0.9; background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; width: 700px; height: 600px; border: 2px solid black; overflow: hidden; }
+        .bird { position: absolute; width: 45px; height: 30px; background-image: url('bird.png'); background-size: cover; left: 150px; top: 250px; }
+        .pipe { position: absolute; width: 90px; background-image: url('pillar1.png'); }
+        /* .ground { position: absolute; bottom: 0; width: 125%; height: 75px; background-image: url('ground.png'); background-size: cover; background-repeat: repeat-x; animation: moveGround 3s linear infinite; } */
+        .score { z-index:1; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 24px; font-weight: bold; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px; }
+        .restart-btn {
+            z-index:1; 
+            display: none; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 24px; 
+            padding: 12px 30px; 
+            background: linear-gradient(180deg, #ffcc00, #ff9900); /* Golden pixel-style gradient */
+            color: #fff; 
+            border: 4px solid #8b4513; /* Dark brown border for a retro effect */
+            font-family: 'Press Start 2P', cursive; /* Pixel font */
+            text-transform: uppercase; 
+            box-shadow: 0px 4px 0px #5a2d0c, 0px 8px 10px rgba(0, 0, 0, 0.3); /* 3D button effect */
+            cursor: pointer;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .restart-btn:hover {
+            background: linear-gradient(180deg, #ffdd44, #ff9900); /* Lighter on hover */
+            box-shadow: 0px 2px 0px #5a2d0c, 0px 4px 5px rgba(0, 0, 0, 0.3);
+            transform: translate(-50%, -52%); /* Slight lift effect */
+        }
+
+        .restart-btn:active {
+            box-shadow: 0px 1px 0px #5a2d0c, 0px 2px 3px rgba(0, 0, 0, 0.3);
+            transform: translate(-50%, -48%); /* Button press effect */
+        }
+        .ground {
+    position: absolute;
+    bottom: 0;
+    width: 125%;
+    height: 75px;
+    background: url('ground.png') center/cover no-repeat;
+    background-repeat: repeat-x;
+    transition: transform 0.5s ease-in-out, background 0.5s ease-in-out;
+}
+
+/* When activated, ground moves down and spikes appear from below */
+.ground.spikes-active {
+    transform: translateY(20px) scaleY(1.2); /* Moves down and makes spikes pop */
+    background: url('spikes.png') center/cover no-repeat;
+    background-repeat: repeat-x;
+}
+        .countdown { z-index:1; display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; font-weight: bold; color: white; background: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score">Score: 0</div>
+        <div class="bird"></div>
+        <div class="ground"></div>
+        <button class="restart-btn" onclick="restartGame()">Restart</button>
+        <div class="countdown"></div>
+    </div>
+
+    <script>
+        const bird = document.querySelector('.bird');
+        const gameContainer = document.querySelector('.game-container');
+        const ground = document.querySelector('.ground');
+        const scoreElement = document.querySelector('.score');
+        const restartBtn = document.querySelector('.restart-btn');
+        const countdown = document.querySelector('.countdown');
+
+        let birdY = 250;
+        let gravity = 5; 
+        let score = 0;
+        let gameOver = false;
+        let pipeInterval, fallInterval;
+        let speedMultiplier = 1; // Initial speed multiplier
+        let speedIncrements = 0; // Track how many times speed increased
+        let battleModeActive = false;
+        let mode = 1
+        let isPaused = false;
+        let first = true;
+        function endGame() {
+            gameOver = true;
+            restartBtn.style.display = "block";
+            clearInterval(pipeInterval);
+            clearInterval(fallInterval); 
+            bird.style.transition = "opacity 0.8s ease-out, transform 0.8s ease-out";
+            bird.style.opacity = "0"; // Fade out
+            bird.style.transform = "scale(0.3) rotate(180deg)"; // Shrink & rotate effect
+
+            // Remove the bird after animation completes
+            setTimeout(() => {
+                bird.style.display = "none";
+            }, 800); // Match the transition time
+        }
+
+        function restartGame() {
+            console.log("restartgame")
+            restartBtn.style.display = "none";
+            countdown.style.display = "block";
+
+            let count = 3;
+            countdown.textContent = count;
+
+            let countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdown.textContent = count;
+                } else {
+                    clearInterval(countdownInterval);
+                    countdown.style.display = "none";
+
+                    document.querySelector(".game-container").style.background = "url('background1.png') center/cover no-repeat";
+                    document.querySelector('.ground').style.backgroundImage = "url('ground.png')";
+                    // Remove all pipes
+                    document.querySelectorAll(".pipe").forEach(pipe => pipe.remove());
+                    document.querySelectorAll(".bullet").forEach(bullet => bullet.remove());
+                    clearInterval(fallInterval); // Fix: Clear existing interval before starting a new one
+                    clearInterval(pipeInterval); // Fix: Ensure pipe interval is reset
+                    // Restart the game
+                    startGame();
+                }
+            }, 1000);
+            console.log("endrestartgame")
+        }
+ 
+        function startGame() {
+            birdY = 250;
+            gravity = 5; 
+            score = 0;
+            gameOver = false;
+            pipeInterval, fallInterval;
+            speedMultiplier = 1; // Initial speed multiplier
+            speedIncrements = 0; // Track how many times speed increased
+            battleModeActive = false;
+            mode = 1
+            isPaused = false;
+
+            bird.style.top = birdY + 'px';
+            scoreElement.textContent = "Score: 0";
+            bird.style.opacity = "1"; 
+            bird.style.display = "block";
+            bird.style.transform ="none";
+            bird.style.transition ="none";
+            document.querySelectorAll(".pipe").forEach(pipe => pipe.remove());
+            document.querySelectorAll(".bullet").forEach(bullet => bullet.remove());
+                    
+            fallInterval = setInterval(fall, 20);
+            pipeInterval = setInterval(createPipe, 2000);
+            
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (gameOver) {
+                    restartGame();
+                } else {
+                    jump();
+                }
+            }
+        });
+
+        startGame();
+
+        function jump() {
+            let jumpSpeed = 15;
+            let jumpDecay = 0.5;
+
+            let jumpInterval = setInterval(() => {
+                if (jumpSpeed <= 0) {
+                    clearInterval(jumpInterval);
+                } else {
+                    birdY -= jumpSpeed;
+                    bird.style.top = birdY + 'px';
+                    jumpSpeed -= jumpDecay;
+                }
+            }, 20);
+        }
+
+        function fall() {
+            birdY += gravity;
+            bird.style.top = birdY + 'px';
+
+            if (birdY + 30 >= gameContainer.clientHeight - 75) {
+                endGame();
+            }
+            // if (birdY <= 0) {
+            //     endGame(); 
+            // }
+        }
+
+        function createPipe() {
+            if (gameOver) return;
+            else if(score<100 && mode===1)
+            {
+                let pipeTopHeight = Math.random() * 200 + 50;
+                let pipeBottomHeight = 500 - pipeTopHeight - 100;
+                let pipeX = 700;
+
+                const pipeTop = document.createElement('div');
+                const pipeBottom = document.createElement('div');
+                pipeTop.classList.add('pipe');
+                pipeBottom.classList.add('pipe');
+
+                pipeTop.style.height = pipeTopHeight + 'px';
+                pipeBottom.style.height = pipeBottomHeight + 'px';
+                pipeTop.style.top = '0';
+                pipeBottom.style.bottom = '0';
+                pipeTop.style.left = pipeBottom.style.left = pipeX + 'px';
+
+                gameContainer.appendChild(pipeTop);
+                gameContainer.appendChild(pipeBottom);
+
+                let passed = false;
+                let moveSpeed = 2 * speedMultiplier; // Adjust movement speed dynamically
+
+                let moveInterval = setInterval(() => {
+                    if (gameOver) {
+                        clearInterval(moveInterval);
+                        return;
+                    }
+
+                    pipeX -= moveSpeed;
+                    pipeTop.style.left = pipeX + 'px';
+                    pipeBottom.style.left = pipeX + 'px';
+
+                    if (pipeX < -120) {
+                        clearInterval(moveInterval);
+                        if (pipeTop && pipeTop.parentNode === gameContainer) {
+                            gameContainer.removeChild(pipeTop);
+                        }
+                        if (pipeBottom && pipeBottom.parentNode === gameContainer) {
+                            gameContainer.removeChild(pipeBottom);
+                        }
+
+                    }
+
+                    if (pipeX < 50 && !passed) {
+                        score=score+50;
+                        scoreElement.textContent = `Score: ${score}`;
+                        passed = true;
+
+                        // Increase speed every 20 points, up to 5 times
+                        if (score % 20 === 0 && speedIncrements < 5) {
+                            speedMultiplier *= 1.2; // Increase speed by 20%
+                            speedIncrements++; // Track increments
+                        }
+
+                        // Reset speed after 5 increments
+                        if (speedIncrements >= 5) {
+                            speedMultiplier = 1;
+                            speedIncrements = 0;
+                        }
+                    }
+
+                    if (checkCollision(pipeTop) || checkCollision(pipeBottom)) {
+                        endGame();
+                    }
+                }, 15);
+            }
+            else if (score >= 100 && !battleModeActive && mode===1){
+                enterGunBulletsMode(); 
+                return; // Stop creating pipes
+            }
+            else if(mode===2 && battleModeActive)
+            {
+                if (bulletinterval) {
+                    clearInterval(bulletinterval); // Clear previous interval if exists
+                }
+
+                bulletinterval = setInterval(createBullet, Math.random() * (1500 - 500) + 500);
+            }
+            
+            console.log("endcreatePipe")
+        }
+
+        function createBullet() {
+            console.log("createBullet")
+            if (gameOver) return;
+            else if (mode!=1)
+            {
+                let bullet = document.createElement('div');
+                bullet.classList.add('bullet');
+                bullet.style.position = 'absolute';
+                bullet.style.right = '0px';
+                bullet.style.top = Math.random() * 500 + 'px';
+                bullet.style.width = '10px';
+                bullet.style.height = '10px';
+                bullet.style.background = 'linear-gradient(to right, red, #e85353, #ff0c00)';
+                bullet.style.borderRadius = '50%';
+                bullet.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.8)';
+                bullet.style.zIndex = '5';
+                gameContainer.appendChild(bullet);
+
+                let bulletSpeed = Math.random() * 3 + 2;
+                let passedBird = false; 
+
+                let moveBullet = setInterval(() => {
+                    if (gameOver) {
+                        clearInterval(moveBullet);
+                        return;
+                    }
+
+                    let bulletRect = bullet.getBoundingClientRect();
+                    let birdRect = bird.getBoundingClientRect();
+
+                    bullet.style.right = (parseInt(bullet.style.right) + bulletSpeed) + 'px';
+
+                    // Check if bullet has passed the bird
+                    if (!passedBird && bulletRect.right < birdRect.left) {
+                        passedBird = true; // Mark as passed
+                        score += 1; // Increase score
+                        scoreElement.textContent = `Score: ${score}`;
+                    }
+
+                    // Remove the bullet if it exits the screen
+                    if (bulletRect.right < 0) {
+                        clearInterval(moveBullet);
+                        gameContainer.removeChild(bullet);
+                    }
+
+                    if (checkCollision(bullet)) {
+                        endGame();
+                    }
+                    
+                }, 15);
+                console.log("endcreateBullet")
+            }
+        }
+    
+        function checkCollision(pipe) {
+            
+            let birdRect = bird.getBoundingClientRect();
+            let pipeRect = pipe.getBoundingClientRect();
+
+            // Check collision with pipes
+            let pipeCollision =
+                birdRect.right > pipeRect.left &&
+                birdRect.left < pipeRect.right &&
+                birdRect.bottom > pipeRect.top &&
+                birdRect.top < pipeRect.bottom;
+
+            // Check if bird touches the top of the screen
+            let topCollision = birdRect.top <= 0;
+
+            if (pipeCollision || topCollision) {
+                endGame();
+                return true; // Collision detected
+            }
+
+            return false; // No collision
+        }
+
+        function enterGunBulletsMode() {
+            console.log("enterGunBulletsMode")
+            clearInterval(pipeInterval);  
+            mode=2;
+            let countdown = 3;
+            const countdownText = document.createElement("div");
+            countdownText.style.position = "absolute";
+            countdownText.style.top = "50%";
+            countdownText.style.left = "50%";
+            countdownText.style.transform = "translate(-50%, -50%)";
+            countdownText.style.fontSize = "30px";
+            countdownText.style.color = "Red";
+            countdownText.style.fontWeight = "bold";
+            countdownText.style.zIndex = "10";
+            document.querySelector(".game-container").appendChild(countdownText);
+
+            // Create background transition container inside .game-container
+            let bgWrapper = document.createElement("div");
+            bgWrapper.classList.add("bg-wrapper");
+
+            let oldBg = document.createElement("div");
+            oldBg.classList.add("background", "old-bg");
+
+            let newBg = document.createElement("div");
+            newBg.classList.add("background", "new-bg");
+
+            bgWrapper.appendChild(oldBg);
+            bgWrapper.appendChild(newBg);
+            gameContainer.appendChild(bgWrapper);
+           
+           
+            const countdownInterval = setInterval(() => {
+                if (countdown > 0) {
+                    if(gameOver)
+                    {
+                        clearInterval(countdownInterval);
+                        countdownText.remove();
+                    }
+                    else
+                    {
+                        countdownText.innerText = `Entering Battle Mode in ${countdown}`;
+                        countdown--;
+                    }
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownText.remove();
+
+                  
+                    newBg.style.transform = "translateX(0)";
+                    oldBg.style.transform = "translateX(-100%)";
+                    
+                    gameContainer.style.background = "url('background2.png') center/cover no-repeat";
+                    ground.style.backgroundImage = "url('spikes.png')";
+                    bgWrapper.remove();
+                    battleModeActive = true;
+                    document.querySelectorAll('.pipe').forEach(pipe => pipe.remove());
+
+                    gameContainer.style.transition = "background 1s ease-in-out";
+                    gameContainer.style.background = "url('background2.png') center/cover no-repeat";
+
+                    setTimeout(() => {
+                        pipeInterval = setInterval(createPipe, 2000);  
+                    }, 200);  
+
+                    bulletinterval = setInterval(createBullet, 1000);
+                
+                }
+            }, 1000);
+            console.log("endenterGunBulletsMode")
+        } 
+    </script>
+</body>
+</html>
