@@ -83,15 +83,6 @@
     </style>
 </head>
 <body>
-    <div class="gamecenter">    
-        <div class="game-container">
-        <div class="score">Score: 0</div>
-        <div class="bird"></div>
-        <div class="ground"></div>
-        <button class="restart-btn" onclick="restartGame()">Restart</button>
-        <div class="countdown"></div>
-        </div>
-    </div>
     <div class="container">
         <h1>Flappy Bird: Ultimate Battle Edition</h1>
         <p>Get ready for an adrenaline-pumping twist on the classic Flappy Bird! Navigate through intense battle zones, dodging bullets, lasers, and missiles in a futuristic sci-fi showdown.</p>
@@ -103,7 +94,7 @@
         
         <div class="mode">
             <h2>Gun Bullets Mode (Unlocked at Score 100)</h2>
-            <p>Pipes disappear, and the battlefield ignites! A countdown warns you: <strong>"Entering Battle Mode in 3...2...1"</strong>. Bullets, lasers, and plasma shots fly from the right—dodge them all or it's game over!</p>
+            <p>Pipes disappear, and the battlefield ignites. Bullets fly from the right—dodge them all or it's game over!</p>
         </div>
         
         <div class="mode">
@@ -113,7 +104,15 @@
         
         <h3>Can you handle the battlefield and set a high score? 🚀🔥</h3>
     </div>
-    
+    <div class="gamecenter">    
+        <div class="game-container">
+        <div class="score">Score: 0</div>
+        <div class="bird"></div>
+        <div class="ground"></div>
+        <button class="restart-btn" onclick="restartGame()">Restart</button>
+        <div class="countdown"></div>
+        </div>
+    </div>
 
     <script>
         const bird = document.querySelector('.bird');
