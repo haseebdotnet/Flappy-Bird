@@ -309,13 +309,13 @@
                         passed = true;
 
                         // Increase speed every 20 points, up to 5 times
-                        if (score % 20 === 0 && speedIncrements < 5) {
-                            speedMultiplier *= 1.2; // Increase speed by 20%
+                        if (score % 10 === 0 && speedIncrements < 10) {
+                            speedMultiplier *= 1.1; // Increase speed by 20%
                             speedIncrements++; // Track increments
                         }
 
                         // Reset speed after 5 increments
-                        if (speedIncrements >= 5) {
+                        if (speedIncrements >= 10) {
                             speedMultiplier = 1;
                             speedIncrements = 0;
                         }
