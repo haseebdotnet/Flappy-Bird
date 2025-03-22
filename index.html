@@ -6,7 +6,24 @@
     <title>Flappy Bird</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: skyblue; overflow: hidden; }
+        .container {
+            
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            color: #5a2d0c;
+        }
+        .mode {
+            margin: 20px 0;
+            padding: 15px;
+            background: #d6d6d6;
+            border-left: 5px solid #000000;
+            border-radius: 5px;
+        }
+        body { align-items: center; height: 100vh; background-color: skyblue;   }
         .game-container { background-image: url('background1.png'); opacity: 0.9; background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; width: 700px; height: 600px; border: 2px solid black; overflow: hidden; }
         .bird { position: absolute; width: 45px; height: 30px; background-image: url('bird.png'); background-size: cover; left: 150px; top: 250px; }
         .pipe { position: absolute; width: 90px; background-image: url('pillar1.png'); }
@@ -57,16 +74,44 @@
     background: url('spikes.png') center/cover no-repeat;
     background-repeat: repeat-x;
 }
+.gamecenter{
+    display: flex;
+    justify-content: center;
+   
+}
         .countdown { z-index:1; display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; font-weight: bold; color: white; background: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div class="game-container">
+    <div class="container">
+        <h1>Flappy Bird: Ultimate Battle Edition</h1>
+        <p>Get ready for an adrenaline-pumping twist on the classic Flappy Bird! Navigate through intense battle zones, dodging bullets, lasers, and missiles in a futuristic sci-fi showdown.</p>
+        
+        <div class="mode">
+            <h2>Pillar Mode (Classic)</h2>
+            <p>Dodge pipes just like the original Flappy Bird, but beware—things are about to get serious!</p>
+        </div>
+        
+        <div class="mode">
+            <h2>Gun Bullets Mode (Unlocked at Score 100)</h2>
+            <p>Pipes disappear, and the battlefield ignites! A countdown warns you: <strong>"Entering Battle Mode in 3...2...1"</strong>. Bullets, lasers, and plasma shots fly from the right—dodge them all or it's game over!</p>
+        </div>
+        
+        <div class="mode">
+            <h2>Shooting Mode (Unlocked at Score 200)</h2>
+            <p>Enter a full-scale war zone in a futuristic sci-fi setting. Bullets increase in speed and frequency. Only the most skilled players will survive!</p>
+        </div>
+        
+        <h3>Can you handle the battlefield and set a high score? 🚀🔥</h3>
+    </div>
+    <div class="gamecenter">    
+        <div class="game-container">
         <div class="score">Score: 0</div>
         <div class="bird"></div>
         <div class="ground"></div>
         <button class="restart-btn" onclick="restartGame()">Restart</button>
         <div class="countdown"></div>
+        </div>
     </div>
 
     <script>
@@ -160,7 +205,7 @@
         }
 
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
+            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
                 if (gameOver) {
                     restartGame();
                 } else {
@@ -168,6 +213,20 @@
                 }
             }
         });
+        document.addEventListener('touchstart', () => {
+            if (gameOver) {
+                restartGame();
+            } else {
+                jump();
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // Left mouse button
+                handleClick();
+            }
+        });
+
 
         startGame();
 
@@ -245,7 +304,7 @@
                     }
 
                     if (pipeX < 50 && !passed) {
-                        score=score+50;
+                        score=score+1;
                         scoreElement.textContent = `Score: ${score}`;
                         passed = true;
 
