@@ -59,26 +59,27 @@
             transform: translate(-50%, -48%); /* Button press effect */
         }
         .ground {
-    position: absolute;
-    bottom: 0;
-    width: 125%;
-    height: 75px;
-    background: url('ground.png') center/cover no-repeat;
-    background-repeat: repeat-x;
-    transition: transform 0.5s ease-in-out, background 0.5s ease-in-out;
-}
+            position: absolute;
+            bottom: 0;
+            width: 125%;
+            height: 75px;
+            background: url('ground.png') center/cover no-repeat;
+            background-repeat: repeat-x;
+            transition: transform 0.5s ease-in-out, background 0.5s ease-in-out;
+        }
 
-/* When activated, ground moves down and spikes appear from below */
-.ground.spikes-active {
-    transform: translateY(20px) scaleY(1.2); /* Moves down and makes spikes pop */
-    background: url('spikes.png') center/cover no-repeat;
-    background-repeat: repeat-x;
-}
-.gamecenter{
-    display: flex;
-    justify-content: center;
-   margin:20px;
-}
+        .ground.spikes-active {
+            transform: translateY(20px) scaleY(1.2);
+            background: url('spikes.png') center/cover no-repeat;
+            background-repeat: repeat-x;
+        }
+        .gamecenter{
+            display: flex;
+            justify-content: center;
+        margin:20px;
+        }
+
+
         .countdown { z-index:1; display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; font-weight: bold; color: white; background: rgba(0, 0, 0, 0.7); padding: 20px; border-radius: 10px; }
     </style>
 </head>
@@ -128,16 +129,24 @@
         let gameOver = false;
         let pipeInterval, fallInterval;
         let speedMultiplier = 1; // Initial speed multiplier
-        let speedIncrements = 0; // Track how many times speed increased
+        let speedIncrements = 0; 
+        let extrabulletinterval;
+        let extrabulletintervalcheck=false;
         let battleModeActive = false;
+        let WarzoneModeActive = false;
         let mode = 1
         let isPaused = false;
         let first = true;
+        let miliseconds=2000;
+        let bullets = []; // Declare an empty array
+
         function endGame() {
             gameOver = true;
             restartBtn.style.display = "block";
             clearInterval(pipeInterval);
             clearInterval(fallInterval); 
+            clearInterval(extrabulletinterval);
+
             bird.style.transition = "opacity 0.8s ease-out, transform 0.8s ease-out";
             bird.style.opacity = "0"; // Fade out
             bird.style.transform = "scale(0.3) rotate(180deg)"; // Shrink & rotate effect
@@ -145,11 +154,11 @@
             // Remove the bird after animation completes
             setTimeout(() => {
                 bird.style.display = "none";
-            }, 800); // Match the transition time
+            }, 1000); // Match the transition time
         }
-
         function restartGame() {
             console.log("restartgame")
+            
             restartBtn.style.display = "none";
             countdown.style.display = "block";
 
@@ -166,30 +175,27 @@
 
                     document.querySelector(".game-container").style.background = "url('background1.png') center/cover no-repeat";
                     document.querySelector('.ground').style.backgroundImage = "url('ground.png')";
-                    // Remove all pipes
+                    
                     document.querySelectorAll(".pipe").forEach(pipe => pipe.remove());
                     document.querySelectorAll(".bullet").forEach(bullet => bullet.remove());
-                    clearInterval(fallInterval); // Fix: Clear existing interval before starting a new one
-                    clearInterval(pipeInterval); // Fix: Ensure pipe interval is reset
-                    // Restart the game
                     startGame();
                 }
             }, 1000);
             console.log("endrestartgame")
-        }
- 
+        } 
         function startGame() {
             birdY = 250;
             gravity = 5; 
             score = 0;
             gameOver = false;
             pipeInterval, fallInterval;
-            speedMultiplier = 1; // Initial speed multiplier
-            speedIncrements = 0; // Track how many times speed increased
+            speedMultiplier = 1; 
+            speedIncrements = 0; 
             battleModeActive = false;
+            WarzoneModeActive = false;
             mode = 1
             isPaused = false;
-
+            miliseconds=2000;
             bird.style.top = birdY + 'px';
             scoreElement.textContent = "Score: 0";
             bird.style.opacity = "1"; 
@@ -200,18 +206,20 @@
             document.querySelectorAll(".bullet").forEach(bullet => bullet.remove());
                     
             fallInterval = setInterval(fall, 20);
-            pipeInterval = setInterval(createPipe, 2000);
-            
+            pipeInterval = setInterval(createPipe, miliseconds);
         }
 
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+            if (e.code === 'KeyW' && mode===3) moveUp();
+            else if (e.code === 'KeyS' && mode ===3) moveDown();
+            else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
                 if (gameOver) {
                     restartGame();
                 } else {
                     jump();
                 }
             }
+           
         });
         document.addEventListener('touchstart', () => {
             if (gameOver) {
@@ -220,16 +228,17 @@
                 jump();
             }
         });
-
         document.addEventListener('mousedown', (e) => {
             if (e.button === 0) { // Left mouse button
-                handleClick();
+                if (gameOver) 
+                {
+                    restartGame();
+                } else {
+                    jump();
+                }
             }
         });
-
-
         startGame();
-
         function jump() {
             let jumpSpeed = 15;
             let jumpDecay = 0.5;
@@ -237,24 +246,25 @@
             let jumpInterval = setInterval(() => {
                 if (jumpSpeed <= 0) {
                     clearInterval(jumpInterval);
-                } else {
+                } 
+                else if(mode!=3)
+                {
                     birdY -= jumpSpeed;
                     bird.style.top = birdY + 'px';
                     jumpSpeed -= jumpDecay;
-                }
+                } 
             }, 20);
         }
-
         function fall() {
-            birdY += gravity;
-            bird.style.top = birdY + 'px';
+            if(mode!=3)
+            {
+                birdY += gravity;
+                bird.style.top = birdY + 'px';
+            }
 
             if (birdY + 30 >= gameContainer.clientHeight - 75) {
                 endGame();
             }
-            // if (birdY <= 0) {
-            //     endGame(); 
-            // }
         }
 
         function createPipe() {
@@ -304,19 +314,25 @@
                     }
 
                     if (pipeX < 50 && !passed) {
-                        score=score+5;
+                        score=score+50;
                         scoreElement.textContent = `Score: ${score}`;
                         passed = true;
 
                         // Increase speed every 20 points, up to 5 times
                         if (score % 10 === 0 && speedIncrements < 10) {
-                            speedMultiplier *= 1.1; // Increase speed by 20%
-                            speedIncrements++; // Track increments
+                            if(speedMultiplier<2.5)
+                            {
+                                speedMultiplier *= 1.1; 
+                                miliseconds=miliseconds/1.1;
+                            }
+                            speedIncrements++; 
+                            clearInterval(pipeInterval);
+                            pipeInterval = setInterval(createPipe, miliseconds); 
                         }
 
                         // Reset speed after 5 increments
                         if (speedIncrements >= 10) {
-                            speedMultiplier = 1;
+                            speedMultiplier = 1.6;
                             speedIncrements = 0;
                         }
                     }
@@ -327,24 +343,37 @@
                 }, 15);
             }
             else if (score >= 100 && !battleModeActive && mode===1){
-                enterGunBulletsMode(); 
-                return; // Stop creating pipes
+                clearInterval(pipeInterval);
+                setTimeout(() => {
+                    enterGunBulletsMode(); 
+                }, 2000);
+                return;
             }
-            else if(mode===2 && battleModeActive)
+            else if(mode===2 && battleModeActive )
             {
                 if (bulletinterval) {
-                    clearInterval(bulletinterval); // Clear previous interval if exists
+                    clearInterval(bulletinterval); 
+                    clearInterval(extrabulletinterval);
                 }
 
                 bulletinterval = setInterval(createBullet, Math.random() * (1500 - 500) + 500);
-            }
-            
-            console.log("endcreatePipe")
-        }
 
+                if(score>115 && score<=150 && !extrabulletintervalcheck)
+                {
+                    extrabulletinterval=setInterval(createBullet, Math.random() * (1500 - 500) + 400);
+                }
+                else if(score>150 && !extrabulletintervalcheck)
+                {
+                    extrabulletinterval=setInterval(createBullet, Math.random() * (1000 - 500) + 500);
+                }
+            }
+        }
         function createBullet() {
             console.log("createBullet")
-            if (gameOver) return;
+            if (gameOver) 
+            {
+                return;
+            }
             else if (mode!=1)
             {
                 let bullet = document.createElement('div');
@@ -377,7 +406,7 @@
                     // Check if bullet has passed the bird
                     if (!passedBird && bulletRect.right < birdRect.left) {
                         passedBird = true; // Mark as passed
-                        score += 1; // Increase score
+                        score += 10; // Increase score
                         scoreElement.textContent = `Score: ${score}`;
                     }
 
@@ -394,13 +423,10 @@
                 }, 15);
                 console.log("endcreateBullet")
             }
-        }
-    
+        }    
         function checkCollision(pipe) {
-            
             let birdRect = bird.getBoundingClientRect();
             let pipeRect = pipe.getBoundingClientRect();
-
             // Check collision with pipes
             let pipeCollision =
                 birdRect.right > pipeRect.left &&
@@ -420,22 +446,10 @@
         }
 
         function enterGunBulletsMode() {
-            console.log("enterGunBulletsMode")
-            clearInterval(pipeInterval);  
-            mode=2;
-            let countdown = 3;
-            const countdownText = document.createElement("div");
-            countdownText.style.position = "absolute";
-            countdownText.style.top = "50%";
-            countdownText.style.left = "50%";
-            countdownText.style.transform = "translate(-50%, -50%)";
-            countdownText.style.fontSize = "30px";
-            countdownText.style.color = "Red";
-            countdownText.style.fontWeight = "bold";
-            countdownText.style.zIndex = "10";
-            document.querySelector(".game-container").appendChild(countdownText);
+            console.log("enterGunBulletsMode");
 
-            // Create background transition container inside .game-container
+            mode = 2;
+            
             let bgWrapper = document.createElement("div");
             bgWrapper.classList.add("bg-wrapper");
 
@@ -448,47 +462,27 @@
             bgWrapper.appendChild(oldBg);
             bgWrapper.appendChild(newBg);
             gameContainer.appendChild(bgWrapper);
-           
-           
-            const countdownInterval = setInterval(() => {
-                if (countdown > 0) {
-                    if(gameOver)
-                    {
-                        clearInterval(countdownInterval);
-                        countdownText.remove();
-                    }
-                    else
-                    {
-                        countdownText.innerText = `Entering Battle Mode in ${countdown}`;
-                        countdown--;
-                    }
-                } else {
-                    clearInterval(countdownInterval);
-                    countdownText.remove();
 
-                  
-                    newBg.style.transform = "translateX(0)";
-                    oldBg.style.transform = "translateX(-100%)";
-                    
-                    gameContainer.style.background = "url('background2.png') center/cover no-repeat";
-                    ground.style.backgroundImage = "url('spikes.png')";
-                    bgWrapper.remove();
-                    battleModeActive = true;
-                    document.querySelectorAll('.pipe').forEach(pipe => pipe.remove());
+            // Smooth background transition
+            newBg.style.transform = "translateX(0)";
+            oldBg.style.transform = "translateX(-100%)";
 
-                    gameContainer.style.transition = "background 1s ease-in-out";
-                    gameContainer.style.background = "url('background2.png') center/cover no-repeat";
+            gameContainer.style.transition = "background 1s ease-in-out";
+            gameContainer.style.background = "url('background2.png') center/cover no-repeat";
+            ground.style.backgroundImage = "url('spikes.png')";
 
-                    setTimeout(() => {
-                        pipeInterval = setInterval(createPipe, 2000);  
-                    }, 200);  
+            // Remove transition wrapper after effect
+            setTimeout(() => {
+                bgWrapper.remove();
+            }, 1500);
 
-                    bulletinterval = setInterval(createBullet, 1000);
-                
-                }
-            }, 1000);
-            console.log("endenterGunBulletsMode")
-        } 
+            battleModeActive = true;
+            document.querySelectorAll('.pipe').forEach(pipe => pipe.remove());
+
+            bulletinterval = setInterval(createBullet, 1000);
+
+            console.log("endenterGunBulletsMode");
+        }
     </script>
-</body>
+    </body>
 </html>
